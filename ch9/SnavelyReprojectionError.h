@@ -11,7 +11,7 @@ public:
                                                                            observed_y(observation_y) {}
 
     template<typename T>
-    bool operator()(const T *const camera,
+    bool operator()(const T *const camera, //同时优化位姿和三维点;
                     const T *const point,
                     T *residuals) const {
         // camera[0,1,2] are the angle-axis rotation
@@ -33,7 +33,7 @@ public:
     static inline bool CamProjectionWithDistortion(const T *camera, const T *point, T *predictions) {
         // Rodrigues' formula
         T p[3];
-        AngleAxisRotatePoint(camera, point, p);
+        AngleAxisRotatePoint(camera, point, p);//将point旋转camera到p;
         // camera[3,4,5] are the translation
         p[0] += camera[3];
         p[1] += camera[4];

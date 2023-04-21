@@ -51,7 +51,8 @@ public:
 
     /// camera参数的起始地址
     double *mutable_cameras() { return parameters_; }
-
+    /// @brief  parameters_是相机起始地址, 走过所有相机参数后,返回三维点的起始地址
+    /// @return 三维点起始地址
     double *mutable_points() { return parameters_ + camera_block_size() * num_cameras_; }
 
     double *mutable_camera_for_observation(int i) {

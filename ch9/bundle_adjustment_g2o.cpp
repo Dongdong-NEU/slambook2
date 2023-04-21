@@ -134,10 +134,11 @@ int main(int argc, char **argv) {
 }
 
 void SolveBA(BALProblem &bal_problem) {
-    const int point_block_size = bal_problem.point_block_size();
-    const int camera_block_size = bal_problem.camera_block_size();
-    double *points = bal_problem.mutable_points();
-    double *cameras = bal_problem.mutable_cameras();
+    const int point_block_size = bal_problem.point_block_size();//3
+    const int camera_block_size = bal_problem.camera_block_size();//9
+    double *cameras = bal_problem.mutable_cameras();//所有参数的起始地址;
+    double *points = bal_problem.mutable_points(); //三维点的起始地址;
+    
 
     // pose dimension 9, landmark is 3
     typedef g2o::BlockSolver<g2o::BlockSolverTraits<9, 3>> BlockSolverType;
@@ -150,22 +151,22 @@ void SolveBA(BALProblem &bal_problem) {
     optimizer.setVerbose(true);
 
     /// build g2o problem
-    const double *observations = bal_problem.observations();
+    const double *observations = bal_problem.observations(); // 二维点的起始地址;
     // vertex
     vector<VertexPoseAndIntrinsics *> vertex_pose_intrinsics;
     vector<VertexPoint *> vertex_points;
-    for (int i = 0; i < bal_problem.num_cameras(); ++i) {
+    for (int i = 0; i < bal_problem.num_cameras(); ++i) { // 16个相机位姿;
         VertexPoseAndIntrinsics *v = new VertexPoseAndIntrinsics();
-        double *camera = cameras + camera_block_size * i;
+        double *camera = cameras + camera_block_size * i; //每一次跨越9个
         v->setId(i);
-        v->setEstimate(PoseAndIntrinsics(camera));
+        v->setEstimate(PoseAndIntrinsics(camera));//设置当前观测值;
         optimizer.addVertex(v);
         vertex_pose_intrinsics.push_back(v);
     }
-    for (int i = 0; i < bal_problem.num_points(); ++i) {
+    for (int i = 0; i < bal_problem.num_points(); ++i) { // 22016个三维点;
         VertexPoint *v = new VertexPoint();
-        double *point = points + point_block_size * i;
-        v->setId(i + bal_problem.num_cameras());
+        double *point = points + point_block_size * i; //每次跨越三个位置;
+        v->setId(i + bal_problem.num_cameras()); // 前面已经有16个顶点;
         v->setEstimate(Vector3d(point[0], point[1], point[2]));
         // g2o在BA中需要手动设置待Marg的顶点
         v->setMarginalized(true);
@@ -174,8 +175,12 @@ void SolveBA(BALProblem &bal_problem) {
     }
 
     // edge
-    for (int i = 0; i < bal_problem.num_observations(); ++i) {
+    //一共83718个观测点;将每一个观测点添加到对应的顶点上(对应的相机与三维点)
+    for (int i = 0; i < bal_problem.num_observations(); ++i) {   
         EdgeProjection *edge = new EdgeProjection;
+        // vertex_pose_intrinsics[],当前观测值在那个位姿节点(相机)被观测到;
+        // bal_problem.camera_index(),返回所有观测值对应的相机索引指针;
+        // bal_problem.camera_index()[i],返回当前观测值的相机索引;
         edge->setVertex(0, vertex_pose_intrinsics[bal_problem.camera_index()[i]]);
         edge->setVertex(1, vertex_points[bal_problem.point_index()[i]]);
         edge->setMeasurement(Vector2d(observations[2 * i + 0], observations[2 * i + 1]));
@@ -187,7 +192,8 @@ void SolveBA(BALProblem &bal_problem) {
     optimizer.initializeOptimization();
     optimizer.optimize(40);
 
-    // set to bal problem
+    // set to bal problem 
+    // 将优化过后的东西保存
     for (int i = 0; i < bal_problem.num_cameras(); ++i) {
         double *camera = cameras + camera_block_size * i;
         auto vertex = vertex_pose_intrinsics[i];

@@ -41,7 +41,7 @@ BALProblem::BALProblem(const std::string &filename, bool use_quaternions) {
     };
 
     // This wil die horribly on invalid files. Them's the breaks.
-    FscanfOrDie(fptr, "%d", &num_cameras_);
+    FscanfOrDie(fptr, "%d", &num_cameras_);//读取数值,写入到地址num_cameras_中
     FscanfOrDie(fptr, "%d", &num_points_);
     FscanfOrDie(fptr, "%d", &num_observations_);
 
@@ -56,21 +56,22 @@ BALProblem::BALProblem(const std::string &filename, bool use_quaternions) {
     num_parameters_ = 9 * num_cameras_ + 3 * num_points_;
     parameters_ = new double[num_parameters_];
 
-    for (int i = 0; i < num_observations_; ++i) {
-        FscanfOrDie(fptr, "%d", camera_index_ + i);
-        FscanfOrDie(fptr, "%d", point_index_ + i);
+    for (int i = 0; i < num_observations_; ++i) {  //num_observations_,2d点的总量
+        //从指针fptr中读取数值,并将其存储到 camera_index_ + i 所指向的内存地址中
+        FscanfOrDie(fptr, "%d", camera_index_ + i);  // 读取一行中的相机索引
+        FscanfOrDie(fptr, "%d", point_index_ + i);   // 读取一行中的三维点索引
         for (int j = 0; j < 2; ++j) {
-            FscanfOrDie(fptr, "%lf", observations_ + 2 * i + j);
+            FscanfOrDie(fptr, "%lf", observations_ + 2 * i + j);// 读取一行中的二维点的数值;
         }
     }
-
+    // 二维点读取完了接着读相机参数(9*16)和三维点(22106*3);
     for (int i = 0; i < num_parameters_; ++i) {
         FscanfOrDie(fptr, "%lf", parameters_ + i);
     }
 
-    fclose(fptr);
+    fclose(fptr);//所有参数读完;
 
-    use_quaternions_ = use_quaternions;
+    use_quaternions_ = use_quaternions;  // false不使用四元数;
     if (use_quaternions) {
         // Switch the angle-axis rotations to quaternions.
         num_parameters_ = 10 * num_cameras_ + 3 * num_points_;
@@ -158,7 +159,7 @@ void BALProblem::WriteToPLYFile(const std::string &filename) const {
     double center[3];
     for (int i = 0; i < num_cameras(); ++i) {
         const double *camera = cameras() + camera_block_size() * i;
-        CameraToAngelAxisAndCenter(camera, angle_axis, center);
+        CameraToAngelAxisAndCenter(camera, angle_axis, center); //
         of << center[0] << ' ' << center[1] << ' ' << center[2]
            << " 0 255 0" << '\n';
     }
